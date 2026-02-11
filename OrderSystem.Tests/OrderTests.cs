@@ -244,6 +244,7 @@ namespace OrderSystem.Tests
                 errorEventRaised = true;
                 erroredEventArgs = args;
                 Interlocked.Increment(ref errorEventCount);
+                throw new Exception("testttinggg");
             };
 
             PlacedEventArgs placedEventArgs = null;
@@ -264,7 +265,7 @@ namespace OrderSystem.Tests
             _mockOrderService.Verify(s => s.Buy(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<decimal>()), Times.Once); // Only one buy attempt should occur
             placedEventRaised.Should().BeFalse(); // Placed event should not be raised
             placedEventArgs.Should().BeNull();
-            errorEventCount.Should().Be(threadCount); // All errored events should be raised
+            errorEventCount.Should().Be(1); // After first error, buy is prevented, so only one error event should be raised
             errorEventRaised.Should().BeTrue(); // Error event should be raised
             erroredEventArgs.Should().NotBeNull();
             erroredEventArgs.Code.Should().StartWith("BOND");
@@ -352,7 +353,7 @@ namespace OrderSystem.Tests
             _order = new Order(_mockOrderService.Object, _priceThreshold);
 
             //Act
-            Action action = () => _order.RespondToTick(null, 50m);
+            Action action = () => _order.RespondToTick("", 50m);
 
             //Assert
             action.Should().Throw<ValidationException>()
