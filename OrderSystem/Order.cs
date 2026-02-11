@@ -57,16 +57,26 @@ namespace OrderSystem
                 throw new ValidationException(error);
             }
 
-            lock(_lock)
+            // avoiding lock: fast-path check
+            if (_isPlaced || _hasErrored)
             {
-                if(_isPlaced || _hasErrored)
+                return;
+            }
+
+            Delegate? placedHandler = null;
+            Delegate? erroredHandler = null;
+            Exception? caughtException = null;
+
+            lock (_lock)
+            {
+                if (_isPlaced || _hasErrored)
                 {
-                    return; // Order already placed or errored, ignore further ticks
+                    return;
                 }
 
                 try
                 {
-                    if(price >= _priceThreshold)
+                    if (price >= _priceThreshold)
                     {
                         return;
                     }
@@ -74,15 +84,27 @@ namespace OrderSystem
                     _orderService.Buy(code, 1, price); // Assumption: Always Buy just 1 unit
                     _isPlaced = true;
 
-                    SafeInvoke(Placed, (subscriber, ev) => ((PlacedEventHandler)subscriber)((PlacedEventArgs)ev), new PlacedEventArgs(code, price));
+                    placedHandler = Placed;
                 }
                 catch (Exception ex)
                 {
                     // marked to prevent further processing of ticks after an error has occurred
                     _hasErrored = true;
 
-                    SafeInvoke(Errored, (subscriber, ev) => ((ErroredEventHandler)subscriber)((ErroredEventArgs)ev), new ErroredEventArgs(code, price, ex));
+                    erroredHandler = Errored;
+                    caughtException = ex;
                 }
+            }
+
+            // invoke subscribers outside lock
+            if (_isPlaced)
+            {
+                SafeInvoke(placedHandler, (subscriber, ev) => ((PlacedEventHandler)subscriber)((PlacedEventArgs)ev), new PlacedEventArgs(code, price));
+            }
+
+            if (_hasErrored)
+            {
+                SafeInvoke(erroredHandler, (subscriber, ev) => ((ErroredEventHandler)subscriber)((ErroredEventArgs)ev), new ErroredEventArgs(code, price, caughtException!));
             }
         }
 
