@@ -21,7 +21,23 @@ namespace OrderSystem
 
         public Order(IOrderService orderService, decimal priceThreshold)
         {
-            // Validate constructor parameters
+            ValidateOrderInput(orderService, priceThreshold);
+
+            _orderService = orderService;
+            _priceThreshold = priceThreshold;
+        }
+
+        public void RespondToTick(string code, decimal price)
+        {
+            ValidateTick(code, price);
+
+            Process(code, price);
+        }
+
+        #region private methods
+
+        private void ValidateOrderInput(IOrderService orderService, decimal priceThreshold)
+        {
             var parameters = new OrderInput
             {
                 OrderService = orderService,
@@ -30,19 +46,15 @@ namespace OrderSystem
 
             var validationResults = _inputValidator.Validate(parameters);
 
-            if(!validationResults.IsValid)
+            if (!validationResults.IsValid)
             {
                 var error = validationResults.Errors.FirstOrDefault().ErrorMessage;
                 throw new ValidationException(error);
             }
-
-            _orderService = orderService;
-            _priceThreshold = priceThreshold;
         }
 
-        public void RespondToTick(string code, decimal price)
+        private void ValidateTick(string code, decimal price)
         {
-            // validate tick data
             var tickData = new TickData
             {
                 Code = code,
@@ -51,12 +63,15 @@ namespace OrderSystem
 
             var validationResults = _tickDataValidator.Validate(tickData);
 
-            if(!validationResults.IsValid)
+            if (!validationResults.IsValid)
             {
-                var error = validationResults.Errors.FirstOrDefault().ErrorMessage;
+                var error = validationResults.Errors.FirstOrDefault()?.ErrorMessage;
                 throw new ValidationException(error);
             }
+        }
 
+        private void Process(string code, decimal price)
+        {
             // avoiding lock: fast-path check
             if (_isPlaced || _hasErrored)
             {
@@ -126,5 +141,6 @@ namespace OrderSystem
                 }
             }
         }
+        #endregion
     }
 }
