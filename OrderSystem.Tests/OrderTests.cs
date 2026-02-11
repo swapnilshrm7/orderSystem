@@ -39,7 +39,7 @@ namespace OrderSystem.Tests
 
             //Assert
             action.Should().Throw<ValidationException>()
-                .WithMessage("PriceThreshold must be greater than 0.");
+                .WithMessage("PriceThreshold must be greater than zero.");
         }
 
         [Test]
@@ -50,7 +50,7 @@ namespace OrderSystem.Tests
 
             //Assert
             action.Should().Throw<ValidationException>()
-                .WithMessage("PriceThreshold must be greater than 0.");
+                .WithMessage("PriceThreshold must be greater than zero.");
         }
 
         [Test]
@@ -329,6 +329,62 @@ namespace OrderSystem.Tests
 
             //Assert
             _mockOrderService.Verify(s => s.Sell(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<decimal>()), Times.Never); // Sell should never be called
+        }
+
+        [Test]
+        public void RespondToTick_CodeIsNull_ThrowsValidationException()
+        {
+            //Arrange
+            _order = new Order(_mockOrderService.Object, _priceThreshold);
+
+            //Act
+            Action action = () => _order.RespondToTick(null, 50m);
+
+            //Assert
+            action.Should().Throw<ValidationException>()
+                .WithMessage("Code cannot be null.");
+        }
+
+        [Test]
+        public void RespondToTick_CodeIsEmpty_ThrowsValidationException()
+        {
+            //Arrange
+            _order = new Order(_mockOrderService.Object, _priceThreshold);
+
+            //Act
+            Action action = () => _order.RespondToTick(null, 50m);
+
+            //Assert
+            action.Should().Throw<ValidationException>()
+                .WithMessage("Code cannot be empty.");
+        }
+
+        [Test]
+        public void RespondToTick_PriceIsNegative_ThrowsValidationException()
+        {
+            //Arrange
+            _order = new Order(_mockOrderService.Object, _priceThreshold);
+
+            //Act
+            Action action = () => _order.RespondToTick("BOND", -1m);
+
+            //Assert
+            action.Should().Throw<ValidationException>()
+                .WithMessage("Price must be greater than zero.");
+        }
+
+        [Test]
+        public void RespondToTick_PriceIsZero_ThrowsValidationException()
+        {
+            //Arrange
+            _order = new Order(_mockOrderService.Object, _priceThreshold);
+
+            //Act
+            Action action = () => _order.RespondToTick("BOND", 0m);
+
+            //Assert
+            action.Should().Throw<ValidationException>()
+                .WithMessage("Price must be greater than zero.");
         }
     }
 }
