@@ -116,8 +116,7 @@ namespace OrderSystem
             {
                 SafeInvoke(placedHandler, (subscriber, ev) => ((PlacedEventHandler)subscriber)((PlacedEventArgs)ev), new PlacedEventArgs(code, price));
             }
-
-            if (_hasErrored)
+            else if (_hasErrored)
             {
                 SafeInvoke(erroredHandler, (subscriber, ev) => ((ErroredEventHandler)subscriber)((ErroredEventArgs)ev), new ErroredEventArgs(code, price, caughtException!));
             }
